@@ -15,6 +15,10 @@ char volume;
 
 float angleX = 0;
 float angleY = 0;
+bool sent = false;
+
+unsigned long t0 = millis();
+
 
 #define SerialMon Serial
 #define APPLEMIDI_DEBUG SerialMon
@@ -23,8 +27,8 @@ float angleY = 0;
 char ssid[] = "Tenda_4CA640"; //  your network SSID (name)
 char pass[] = "danslemur";    // your network password (use for WPA, or use as key for WEP)
 
-unsigned long t0 = millis();
 int8_t isConnected = 0;
+
 
 APPLEMIDI_CREATE_DEFAULTSESSION_INSTANCE();
 
@@ -83,14 +87,23 @@ void loop()
   mpu6050.update(); 
   angleX = (mpu6050.getAngleX());
 
-  if ((isConnected > 0) && (millis() - t0) > 500)
+  if(isConnected)
   {
-    byte note = instrumentControl.AngleToMidi(angleX);
-    t0 = millis();
-    DBG(F("AngleX is "), angleX);
-    DBG( F("note is "), note);
-    MIDI.sendNoteOn(note, 120, 1);
-    MIDI.sendNoteOff(note, 120, 1);
+    if(!sent)
+      {
+        MIDI.sendNoteOn(65, 120, 1);
+        sent = true;
+      }
+
+      float pitchBend = instrumentControl.AngleToPitchBend(angleX);
+   
+      MIDI.sendPitchBend(pitchBend, 1);
+
+      if(millis() - t0 > 250)
+      {
+        t0 = millis();
+        DBG(F("pitch bend is  "), pitchBend);
+      }
   }
 }
 
